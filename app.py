@@ -316,6 +316,11 @@ if page == "Score a Patient":
                 # Prepare data
                 input_df = prepare_input_data(inputs)
                 
+                # Debug output
+                st.write("Debug - DataFrame shape:", input_df.shape)
+                st.write("Debug - Column count:", len(input_df.columns))
+                st.write("Debug - First few values:", input_df.iloc[0, :10].tolist())
+                
                 # Get prediction
                 prediction = model.predict(input_df)
                 probability = prediction[0] if isinstance(prediction[0], float) else prediction[0][1]
