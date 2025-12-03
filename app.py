@@ -68,15 +68,27 @@ st.markdown("""
 @st.cache_resource
 def load_model():
     try:
+        # Check secrets exist
+        if "DATABRICKS_HOST" not in st.secrets:
+            return None, "DATABRICKS_HOST not found in secrets"
+        if "DATABRICKS_TOKEN" not in st.secrets:
+            return None, "DATABRICKS_TOKEN not found in secrets"
+            
         os.environ["DATABRICKS_HOST"] = st.secrets["DATABRICKS_HOST"]
         os.environ["DATABRICKS_TOKEN"] = st.secrets["DATABRICKS_TOKEN"]
         mlflow.set_tracking_uri("databricks")
         
+        # Try to load with timeout handling
+        st.info(f"Connecting to: {st.secrets['DATABRICKS_HOST']}")
         model_uri = "models:/workspace.default.diabetes_readmission/1"
+        st.info(f"Loading model: {model_uri}")
+        
         model = mlflow.pyfunc.load_model(model_uri)
         return model, None
     except Exception as e:
-        return None, str(e)
+        import traceback
+        error_detail = f"{str(e)}\n\nTraceback:\n{traceback.format_exc()}"
+        return None, error_detail
 
 model, error = load_model()
 
