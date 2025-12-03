@@ -184,7 +184,7 @@ def prepare_input_data(inputs):
     
     df['total_medications'] = sum(1 for col in medication_cols if df[col].iloc[0] not in ['No', 'no'])
     df['medication_changes'] = sum(1 for col in medication_cols if df[col].iloc[0] in ['Up', 'Down'])
-    df['insulin_prescribed'] = (df['insulin'] != 'No').astype(int).iloc[0]
+    df['insulin_prescribed'] = int(df['insulin'].iloc[0] not in ['No', 'no'])
     df['total_procedures'] = df['num_lab_procedures'] + df['num_procedures']
     df['procedures_per_day'] = df['total_procedures'] / (df['time_in_hospital'] + 1)
     df['high_medication_load'] = (df['num_medications'] > num_meds_median).astype(int)
