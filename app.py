@@ -112,37 +112,86 @@ def get_interventions(risk_level):
         ]
 
 def prepare_input_data(inputs):
-    """Prepare input data in the format the model expects"""
-    # This needs to match the exact features your model was trained on
-    # You'll need to adjust this based on your actual model's expected input
+    """Prepare input data with ALL features the model expects"""
     
-    # Create a dataframe with all required features
-    df = pd.DataFrame([inputs])
+    # Start with a row of all the features with default values
+    # Based on your training script's feature list
     
-    # Encode age to numeric
+    # All medication columns default to 'No'
+    medications = ['metformin', 'repaglinide', 'nateglinide', 'chlorpropamide', 'glimepiride',
+                   'acetohexamide', 'glipizide', 'glyburide', 'tolbutamide', 'pioglitazone',
+                   'rosiglitazone', 'acarbose', 'miglitol', 'troglitazone', 'tolazamide',
+                   'examide', 'citoglipton', 'insulin', 'glyburide-metformin',
+                   'glipizide-metformin', 'glimepiride-pioglitazone', 'metformin-rosiglitazone',
+                   'metformin-pioglitazone']
+    
+    # Create base dataframe with user inputs
+    data = {
+        'race': inputs.get('race', 'Caucasian'),
+        'gender': inputs.get('gender', 'Male'),
+        'age': inputs.get('age', '[70-80)'),
+        'admission_type_id': inputs.get('admission_type_id', 1),
+        'discharge_disposition_id': inputs.get('discharge_disposition_id', 1),
+        'admission_source_id': inputs.get('admission_source_id', 1),
+        'time_in_hospital': inputs.get('time_in_hospital', 3),
+        'num_lab_procedures': inputs.get('num_lab_procedures', 40),
+        'num_procedures': inputs.get('num_procedures', 0),
+        'num_medications': inputs.get('num_medications', 15),
+        'number_outpatient': inputs.get('number_outpatient', 0),
+        'number_emergency': inputs.get('number_emergency', 0),
+        'number_inpatient': inputs.get('number_inpatient', 0),
+        'number_diagnoses': inputs.get('number_diagnoses', 7),
+        'max_glu_serum': inputs.get('max_glu_serum', 'None'),
+        'A1Cresult': inputs.get('A1Cresult', 'None'),
+        'change': inputs.get('change', 'No'),
+        'diabetesMed': inputs.get('diabetesMed', 'Yes'),
+        'diag_1': inputs.get('diag_1', '250'),
+        'diag_2': inputs.get('diag_2', '250'),
+        'diag_3': inputs.get('diag_3', '250'),
+    }
+    
+    # Add medication fields
+    for med in medications:
+        data[med] = inputs.get(med, 'No')
+    
+    df = pd.DataFrame([data])
+    
+    # Encode age to numeric (matching training script)
     age_map = {'[0-10)': 5, '[10-20)': 15, '[20-30)': 25, '[30-40)': 35,
                '[40-50)': 45, '[50-60)': 55, '[60-70)': 65, '[70-80)': 75,
                '[80-90)': 85, '[90-100)': 95}
-    if 'age' in df.columns:
-        df['age_numeric'] = df['age'].map(age_map)
+    df['age_numeric'] = df['age'].map(age_map)
     
-    # Add engineered features that your model expects
+    # Calculate ALL engineered features from your training script
+    # Count medications
+    def count_medications(row):
+        return sum(1 for med in medications if row.get(med, 'No') not in ['No', 'no'])
+    
+    df['total_medications'] = df.apply(lambda row: count_medications(row), axis=1)
+    df['medication_changes'] = 0  # Simplified
+    df['insulin_prescribed'] = (df['insulin'] != 'No').astype(int)
     df['total_procedures'] = df['num_lab_procedures'] + df['num_procedures']
     df['procedures_per_day'] = df['total_procedures'] / (df['time_in_hospital'] + 1)
+    df['high_medication_load'] = (df['num_medications'] > 15).astype(int)
     df['total_prior_visits'] = df['number_outpatient'] + df['number_emergency'] + df['number_inpatient']
     df['has_emergency_history'] = (df['number_emergency'] > 0).astype(int)
     df['has_inpatient_history'] = (df['number_inpatient'] > 0).astype(int)
-    df['high_medication_load'] = (df['num_medications'] > 15).astype(int)  # Using median=15 as approximation
     df['multiple_diagnoses'] = (df['number_diagnoses'] > 7).astype(int)
     df['is_elderly'] = (df['age_numeric'] >= 70).astype(int)
     df['medication_changed'] = (df['change'] == 'Ch').astype(int)
     df['elderly_emergency_risk'] = df['is_elderly'] * df['has_emergency_history']
     df['complex_case'] = df['high_medication_load'] * df['multiple_diagnoses']
+    df['high_utilization'] = ((df['total_prior_visits'] > 2) & (df['time_in_hospital'] > 3)).astype(int)
     
-    # Encode categorical variables
-    le = LabelEncoder()
-    for col in df.select_dtypes(include=['object']).columns:
-        df[col] = le.fit_transform(df[col].astype(str))
+    # Encode ALL categorical variables
+    from sklearn.preprocessing import LabelEncoder
+    categorical_cols = ['race', 'gender', 'age', 'max_glu_serum', 'A1Cresult', 
+                        'change', 'diabetesMed', 'diag_1', 'diag_2', 'diag_3'] + medications
+    
+    for col in categorical_cols:
+        if col in df.columns:
+            le = LabelEncoder()
+            df[col] = le.fit_transform(df[col].astype(str))
     
     return df
 
