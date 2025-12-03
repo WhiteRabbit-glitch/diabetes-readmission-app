@@ -319,11 +319,17 @@ if page == "Score a Patient":
                 # Debug output
                 st.write("Debug - DataFrame shape:", input_df.shape)
                 st.write("Debug - Column count:", len(input_df.columns))
-                st.write("Debug - First few values:", input_df.iloc[0, :10].tolist())
+                
+                # Convert to numpy array with float64 dtype (XGBoost requirement)
+                input_array = input_df.values.astype('float64')
+                st.write("Debug - Array shape:", input_array.shape)
+                st.write("Debug - Array dtype:", input_array.dtype)
                 
                 # Get prediction
-                prediction = model.predict(input_df)
-                probability = prediction[0] if isinstance(prediction[0], float) else prediction[0][1]
+                prediction = model.predict(input_array)
+                st.write("Debug - Raw prediction:", prediction)
+                
+                probability = float(prediction[0]) if len(prediction) == 1 else float(prediction[0][1])
                 
                 risk_level, risk_color, risk_class = get_risk_category(probability)
                 
