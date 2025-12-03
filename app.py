@@ -112,20 +112,9 @@ def get_interventions(risk_level):
         ]
 
 def prepare_input_data(inputs):
-    """Prepare input data with ALL features the model expects"""
+    """Prepare input data with EXACT 58 features the model expects"""
     
-    # Start with a row of all the features with default values
-    # Based on your training script's feature list
-    
-    # All medication columns default to 'No'
-    medications = ['metformin', 'repaglinide', 'nateglinide', 'chlorpropamide', 'glimepiride',
-                   'acetohexamide', 'glipizide', 'glyburide', 'tolbutamide', 'pioglitazone',
-                   'rosiglitazone', 'acarbose', 'miglitol', 'troglitazone', 'tolazamide',
-                   'examide', 'citoglipton', 'insulin', 'glyburide-metformin',
-                   'glipizide-metformin', 'glimepiride-pioglitazone', 'metformin-rosiglitazone',
-                   'metformin-pioglitazone']
-    
-    # Create base dataframe with user inputs
+    # Create dataframe with all 58 columns in exact order from training
     data = {
         'race': inputs.get('race', 'Caucasian'),
         'gender': inputs.get('gender', 'Male'),
@@ -140,60 +129,102 @@ def prepare_input_data(inputs):
         'number_outpatient': inputs.get('number_outpatient', 0),
         'number_emergency': inputs.get('number_emergency', 0),
         'number_inpatient': inputs.get('number_inpatient', 0),
-        'number_diagnoses': inputs.get('number_diagnoses', 7),
-        'max_glu_serum': inputs.get('max_glu_serum', 'None'),
-        'A1Cresult': inputs.get('A1Cresult', 'None'),
-        'change': inputs.get('change', 'No'),
-        'diabetesMed': inputs.get('diabetesMed', 'Yes'),
         'diag_1': inputs.get('diag_1', '250'),
         'diag_2': inputs.get('diag_2', '250'),
         'diag_3': inputs.get('diag_3', '250'),
+        'number_diagnoses': inputs.get('number_diagnoses', 7),
+        'metformin': inputs.get('metformin', 'No'),
+        'repaglinide': 'No',
+        'nateglinide': 'No',
+        'chlorpropamide': 'No',
+        'glimepiride': 'No',
+        'acetohexamide': 'No',
+        'glipizide': 'No',
+        'glyburide': 'No',
+        'tolbutamide': 'No',
+        'pioglitazone': 'No',
+        'rosiglitazone': 'No',
+        'acarbose': 'No',
+        'miglitol': 'No',
+        'troglitazone': 'No',
+        'tolazamide': 'No',
+        'examide': 'No',
+        'citoglipton': 'No',
+        'insulin': inputs.get('insulin', 'No'),
+        'glyburide-metformin': 'No',
+        'glipizide-metformin': 'No',
+        'glimepiride-pioglitazone': 'No',
+        'metformin-rosiglitazone': 'No',
+        'metformin-pioglitazone': 'No',
+        'change': inputs.get('change', 'No'),
+        'diabetesMed': inputs.get('diabetesMed', 'Yes'),
     }
-    
-    # Add medication fields
-    for med in medications:
-        data[med] = inputs.get(med, 'No')
     
     df = pd.DataFrame([data])
     
-    # Encode age to numeric (matching training script)
+    # Calculate median values for thresholds (approximations from typical dataset)
+    num_meds_median = 15
+    num_diagnoses_median = 7
+    total_visits_q75 = 2
+    time_in_hosp_median = 3
+    
+    # Encode age to numeric
     age_map = {'[0-10)': 5, '[10-20)': 15, '[20-30)': 25, '[30-40)': 35,
                '[40-50)': 45, '[50-60)': 55, '[60-70)': 65, '[70-80)': 75,
                '[80-90)': 85, '[90-100)': 95}
     df['age_numeric'] = df['age'].map(age_map)
     
-    # Calculate ALL engineered features from your training script
-    # Count medications
-    def count_medications(row):
-        return sum(1 for med in medications if row.get(med, 'No') not in ['No', 'no'])
+    # Calculate engineered features EXACTLY as in training
+    medication_cols = ['metformin', 'repaglinide', 'nateglinide', 'chlorpropamide', 'glimepiride',
+                       'acetohexamide', 'glipizide', 'glyburide', 'tolbutamide', 'pioglitazone',
+                       'rosiglitazone', 'acarbose', 'miglitol', 'troglitazone', 'tolazamide',
+                       'examide', 'citoglipton', 'insulin', 'glyburide-metformin',
+                       'glipizide-metformin', 'glimepiride-pioglitazone', 'metformin-rosiglitazone',
+                       'metformin-pioglitazone']
     
-    df['total_medications'] = df.apply(lambda row: count_medications(row), axis=1)
-    df['medication_changes'] = 0  # Simplified
-    df['insulin_prescribed'] = (df['insulin'] != 'No').astype(int)
+    df['total_medications'] = sum(1 for col in medication_cols if df[col].iloc[0] not in ['No', 'no'])
+    df['medication_changes'] = sum(1 for col in medication_cols if df[col].iloc[0] in ['Up', 'Down'])
+    df['insulin_prescribed'] = (df['insulin'] != 'No').astype(int).iloc[0]
     df['total_procedures'] = df['num_lab_procedures'] + df['num_procedures']
     df['procedures_per_day'] = df['total_procedures'] / (df['time_in_hospital'] + 1)
-    df['high_medication_load'] = (df['num_medications'] > 15).astype(int)
+    df['high_medication_load'] = (df['num_medications'] > num_meds_median).astype(int)
     df['total_prior_visits'] = df['number_outpatient'] + df['number_emergency'] + df['number_inpatient']
     df['has_emergency_history'] = (df['number_emergency'] > 0).astype(int)
     df['has_inpatient_history'] = (df['number_inpatient'] > 0).astype(int)
-    df['multiple_diagnoses'] = (df['number_diagnoses'] > 7).astype(int)
+    df['multiple_diagnoses'] = (df['number_diagnoses'] > num_diagnoses_median).astype(int)
     df['is_elderly'] = (df['age_numeric'] >= 70).astype(int)
     df['medication_changed'] = (df['change'] == 'Ch').astype(int)
     df['elderly_emergency_risk'] = df['is_elderly'] * df['has_emergency_history']
     df['complex_case'] = df['high_medication_load'] * df['multiple_diagnoses']
-    df['high_utilization'] = ((df['total_prior_visits'] > 2) & (df['time_in_hospital'] > 3)).astype(int)
+    df['high_utilization'] = ((df['total_prior_visits'] > total_visits_q75) & 
+                              (df['time_in_hospital'] > time_in_hosp_median)).astype(int)
     
-    # Encode ALL categorical variables
+    # Encode categorical variables
     from sklearn.preprocessing import LabelEncoder
-    categorical_cols = ['race', 'gender', 'age', 'max_glu_serum', 'A1Cresult', 
-                        'change', 'diabetesMed', 'diag_1', 'diag_2', 'diag_3'] + medications
+    categorical_cols = ['race', 'gender', 'age', 'diag_1', 'diag_2', 'diag_3'] + medication_cols + ['change', 'diabetesMed']
     
     for col in categorical_cols:
         if col in df.columns:
             le = LabelEncoder()
             df[col] = le.fit_transform(df[col].astype(str))
     
-    return df
+    # Return in EXACT column order from training
+    column_order = ['race', 'gender', 'age', 'admission_type_id', 'discharge_disposition_id', 
+                    'admission_source_id', 'time_in_hospital', 'num_lab_procedures', 'num_procedures', 
+                    'num_medications', 'number_outpatient', 'number_emergency', 'number_inpatient', 
+                    'diag_1', 'diag_2', 'diag_3', 'number_diagnoses', 'metformin', 'repaglinide', 
+                    'nateglinide', 'chlorpropamide', 'glimepiride', 'acetohexamide', 'glipizide', 
+                    'glyburide', 'tolbutamide', 'pioglitazone', 'rosiglitazone', 'acarbose', 
+                    'miglitol', 'troglitazone', 'tolazamide', 'examide', 'citoglipton', 'insulin', 
+                    'glyburide-metformin', 'glipizide-metformin', 'glimepiride-pioglitazone', 
+                    'metformin-rosiglitazone', 'metformin-pioglitazone', 'change', 'diabetesMed', 
+                    'total_medications', 'medication_changes', 'insulin_prescribed', 'total_procedures', 
+                    'procedures_per_day', 'high_medication_load', 'total_prior_visits', 
+                    'has_emergency_history', 'has_inpatient_history', 'multiple_diagnoses', 
+                    'age_numeric', 'is_elderly', 'medication_changed', 'elderly_emergency_risk', 
+                    'complex_case', 'high_utilization']
+    
+    return df[column_order]
 
 if page == "Score a Patient":
     st.markdown("<h2>Patient Risk Scoring</h2>", unsafe_allow_html=True)
@@ -238,11 +269,9 @@ if page == "Score a Patient":
             number_inpatient = st.number_input("Inpatient Visits (past year)", min_value=0, max_value=21, value=0)
         
         # Additional features
-        with st.expander("Lab Results & Medications", expanded=False):
+        with st.expander("Medications", expanded=False):
             col3, col4 = st.columns(2)
             with col3:
-                max_glu_serum = st.selectbox("Max Glucose Serum", ['None', '>200', '>300', 'Norm'])
-                A1Cresult = st.selectbox("A1C Result", ['None', '>7', '>8', 'Norm'])
                 change = st.selectbox("Medication Change", ['No', 'Ch'])
                 diabetesMed = st.selectbox("Diabetes Med Prescribed", ['Yes', 'No'])
             
@@ -274,8 +303,6 @@ if page == "Score a Patient":
                 'number_outpatient': number_outpatient,
                 'number_emergency': number_emergency,
                 'number_inpatient': number_inpatient,
-                'max_glu_serum': max_glu_serum,
-                'A1Cresult': A1Cresult,
                 'change': change,
                 'diabetesMed': diabetesMed,
                 'metformin': metformin,
