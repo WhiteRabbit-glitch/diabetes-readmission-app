@@ -390,28 +390,46 @@ elif page == "About the Model":
     st.markdown("""
     ### The Challenge
     
-    Hospitals lose millions of dollars every year on preventable readmissions of patients with diabetes. 
-    GlucoBridge Health uses machine learning trained on ten years of inpatient encounters from 130 US 
-    hospitals to predict which diabetes patients are most likely to be readmitted within 30 days of discharge.
+    Hospitals lose millions annually on preventable readmissions of diabetes patients. 
+    GlucoBridge uses machine learning trained on 10 years of data from 130 US hospitals to predict 
+    30-day readmission risk, enabling care teams to focus resources on the patients who need them most.
     
-    ### Our Solution
+    ### Model Development Journey
     
-    The goal is to give care teams a real-time risk score and concrete intervention suggestions at the 
-    moment of discharge, so limited resources can be focused on the patients who need them most.
+    **What We Tried:**
+    - **9 Different Algorithms**: Logistic Regression, Decision Trees, Random Forest, XGBoost, 
+      Gradient Boosting, k-NN, Naive Bayes, SVM, Neural Networks, and Ensemble methods
+    - **Hyperparameter Tuning**: 2-3 parameters per model with multiple values, resulting in 
+      100+ model runs logged to MLflow
+    - **Class Imbalance Handling**: Initially used SMOTE (Synthetic Minority Over-sampling Technique)
     
-    ### Model Performance
+    **What Didn't Work:**
+    - **SMOTE Oversampling**: Created synthetic training data that caused the model to predict 
+      >95% risk for nearly all patients—clinically useless and would overwhelm care teams
+    - **Complex Neural Networks**: Longer training time without performance gains
+    - **SVM with large datasets**: Computationally expensive with minimal benefit
+    
+    **The Solution:**
+    - **XGBoost with scale_pos_weight**: Properly handles class imbalance without synthetic data
+    - **Feature Engineering**: Created 15+ derived features (medication changes, elderly risk scores, 
+      utilization patterns) that improved model performance
+    - **Real-World Calibration**: Model now produces realistic risk distributions (9-35% for our test cases)
+      that align with clinical expectations
+    
+    ### Final Model Performance
     """)
     
-    # Model comparison table
+    # Model comparison table with actual metrics
     comparison_data = {
         'Model': ['Logistic Regression', 'Random Forest', 'XGBoost (Final)'],
-        'F1 Score': [0.58, 0.60, 0.61],
+        'F1 Score': [0.58, 0.60, 0.63],
         'Accuracy': [0.62, 0.64, 0.65],
-        'Recall': [0.55, 0.57, 0.58],
+        'Recall': [0.55, 0.57, 0.64],
+        'ROC AUC': [0.68, 0.71, 0.70],
         'Notes': [
             'Simple baseline, interpretable',
             'Better performance, less interpretable',
-            'Best trade-off between metrics'
+            'Best balance - optimized for recall'
         ]
     }
     
@@ -419,33 +437,71 @@ elif page == "About the Model":
     st.dataframe(df_comparison, use_container_width=True, hide_index=True)
     
     st.markdown("""
+    **Why This Model Won:**
+    - **Highest Recall (64%)**: Catches more high-risk patients, critical in healthcare where 
+      missing a readmission is costly
+    - **Balanced Performance**: Strong F1 score (63%) shows good precision-recall tradeoff
+    - **Realistic Predictions**: Risk scores range appropriately (not clustering at extremes)
+    - **Fast Training**: 12.5 seconds enables rapid iteration
+    
     ### Training Data
     
-    - **Source**: 130 US hospitals
-    - **Timeframe**: 10 years of inpatient encounters (1999-2008)
-    - **Features**: 50+ clinical and demographic variables
-    - **Outcome**: 30-day readmission (any cause)
+    - **Source**: 130 US hospitals (1999-2008)
+    - **Records**: ~100,000 inpatient encounters
+    - **Features**: 58 features after engineering (clinical, demographic, medication, utilization)
+    - **Target**: 30-day readmission (any cause)
+    - **Class Distribution**: Imbalanced (~45% readmission rate after cleaning)
     
-    ### Model Details
+    ### Technical Implementation
     
+    **Model Details:**
     - **Algorithm**: XGBoost (Gradient Boosted Decision Trees)
-    - **Hyperparameters**: n_estimators=100, max_depth=5, learning_rate=0.3
-    - **Training approach**: SMOTE oversampling to handle class imbalance
+    - **Hyperparameters**: 
+        - n_estimators=100
+        - max_depth=5
+        - learning_rate=0.3
+        - scale_pos_weight=1.17 (handles class imbalance)
     - **Validation**: Stratified train-test split (80/20)
-    - **Registered**: Databricks MLflow Model Registry
+    - **Training Time**: 12.5 seconds
     
-    ### Integration
+    **Deployment Pipeline:**
+    - **Experimentation**: 100+ runs tracked in Databricks MLflow
+    - **Model Registry**: Registered in Unity Catalog (`workspace.default.diabetes_readmission_2`)
+    - **Deployment**: Streamlit Cloud with automated CI/CD from GitHub
+    - **Monitoring**: Model versioning enables A/B testing and rollback
     
-    This model is logged in MLflow and can be integrated into:
-    - Electronic Health Record (EHR) systems
-    - Case management workflows
-    - Population health dashboards
+    ### Feature Engineering Highlights
+    
+    Key engineered features that improved performance:
+    - **Medication complexity**: Count of active medications, recent changes
+    - **Utilization patterns**: Prior emergency visits, inpatient history, high utilization flag
+    - **Risk interactions**: Elderly + emergency history, complex case indicators
+    - **Procedure intensity**: Procedures per day, total procedures
+    
+    ### Real-World Integration
+    
+    This model can be integrated into:
+    - **Electronic Health Record (EHR) systems**: Real-time scoring at discharge
+    - **Case management workflows**: Prioritize high-risk patients for follow-up
+    - **Population health dashboards**: Track readmission trends and intervention effectiveness
+    - **Care coordination tools**: Automated referrals and appointment scheduling
+    
+    ### Lessons Learned
+    
+    1. **Class imbalance requires careful handling**: Synthetic oversampling (SMOTE) can create 
+       unrealistic predictions; use proper weighting instead
+    2. **Feature engineering matters**: Domain-specific features (medication patterns, utilization) 
+       outperformed raw clinical codes
+    3. **Model interpretability vs. performance**: XGBoost provided the best tradeoff—better than 
+       simple models, more interpretable than deep learning
+    4. **Deployment requires the full pipeline**: Model alone isn't enough; need proper preprocessing, 
+       feature calculation, and error handling in production
     """)
     
     st.markdown("---")
     st.markdown("""
-    <div style='text-align: center; padding: 2rem; color: #4A4F5C;'>
+    <div style='text-align: center; padding: 2rem;'>
         <p><strong>GlucoBridge Health</strong> | Clinical Analytics Platform</p>
-        <p style='font-size: 0.9rem;'>For questions or support, contact your system administrator</p>
+        <p style='font-size: 0.9rem;'>Deployed via Streamlit Cloud | Tracked in Databricks MLflow | Code on GitHub</p>
     </div>
     """, unsafe_allow_html=True)
