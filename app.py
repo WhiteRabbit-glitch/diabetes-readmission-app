@@ -403,33 +403,44 @@ elif page == "About the Model":
       100+ model runs logged to MLflow
     - **Class Imbalance Handling**: Initially used SMOTE (Synthetic Minority Over-sampling Technique)
     
-    **What Didn't Work:**
-    - **SMOTE Oversampling**: Created synthetic training data that caused the model to predict 
-      >95% risk for nearly all patients—clinically useless and would overwhelm care teams
-    - **Complex Neural Networks**: Longer training time without performance gains
-    - **SVM with large datasets**: Computationally expensive with minimal benefit
+    **Challenges Encountered:**
+    - **Data Cleaning Misstep**: Initial aggressive cleaning reduced dataset from 100k+ rows to just 
+      200 rows, requiring complete pipeline restart
+    - **Training Time Issues**: Neural Network and SVM models took 2+ hours per run, making iteration 
+      impractical under project deadlines  
+    - **SMOTE Problem**: Created synthetic training data that caused the model to predict >95% risk 
+      for nearly all patients—clinically useless and would overwhelm care teams with false alarms
+    - **Model Registration Failures**: Initial MLflow logging didn't include proper signatures, 
+      preventing model registration in Databricks Unity Catalog
+    - **Feature Mismatch in Deployment**: Trained model expected 58 specific features in exact order; 
+      deployment required careful feature engineering pipeline to match training preprocessing
     
     **The Solution:**
-    - **XGBoost with scale_pos_weight**: Properly handles class imbalance without synthetic data
+    - **XGBoost with scale_pos_weight**: Properly handles class imbalance without synthetic data, 
+      trains in 12.5 seconds vs 2+ hours for alternatives
+    - **Streamlined Preprocessing**: Rebuilt pipeline to preserve data while handling missing values 
+      appropriately (dropped only features >40% missing like A1C results)
     - **Feature Engineering**: Created 15+ derived features (medication changes, elderly risk scores, 
       utilization patterns) that improved model performance
-    - **Real-World Calibration**: Model now produces realistic risk distributions (9-35% for our test cases)
+    - **Real-World Calibration**: Model now produces realistic risk distributions (9-35% range)
       that align with clinical expectations
+    - **Production-Ready Deployment**: Proper MLflow signatures enable seamless model registry 
+      and web application integration
     
     ### Final Model Performance
     """)
     
-    # Model comparison table with actual metrics
+    # Model comparison table with actual metrics - BEST MODEL FIRST
     comparison_data = {
-        'Model': ['Logistic Regression', 'Random Forest', 'XGBoost (Final)'],
-        'F1 Score': [0.58, 0.60, 0.63],
-        'Accuracy': [0.62, 0.64, 0.65],
-        'Recall': [0.55, 0.57, 0.64],
-        'ROC AUC': [0.68, 0.71, 0.70],
+        'Model': ['XGBoost (Final)', 'Random Forest', 'Logistic Regression'],
+        'F1 Score': [0.63, 0.60, 0.58],
+        'Accuracy': [0.65, 0.64, 0.62],
+        'Recall': [0.64, 0.57, 0.55],
+        'ROC AUC': [0.70, 0.71, 0.68],
         'Notes': [
-            'Simple baseline, interpretable',
+            '✓ Best balance - optimized for recall',
             'Better performance, less interpretable',
-            'Best balance - optimized for recall'
+            'Simple baseline, interpretable'
         ]
     }
     
