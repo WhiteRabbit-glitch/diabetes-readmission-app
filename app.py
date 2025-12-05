@@ -63,16 +63,6 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
-# Educational Disclaimer
-st.warning("""
-    **⚠️ EDUCATIONAL PROJECT DISCLAIMER**
-
-    This application is a school assignment created for educational purposes only.
-    The predictions and recommendations provided by this tool should **NOT** be used for actual medical decision-making
-    or patient care. This is not a substitute for professional medical advice, diagnosis, or treatment.
-    Always consult qualified healthcare professionals for medical decisions.
-""")
-
 # Load model from local file
 @st.cache_resource
 def load_model():
@@ -174,6 +164,20 @@ def get_key_factors(inputs, input_df):
     # Check for high procedure count
     if inputs['num_lab_procedures'] > 60:
         factors.append(f"**Extensive testing** - {inputs['num_lab_procedures']} lab procedures suggests complex case")
+
+    # Add baseline explanation if no major risk factors found
+    if not factors:
+        # Check for moderate age
+        if inputs['age'] in ['[50-60)', '[60-70)']:
+            factors.append(f"**Age {inputs['age']}** - Moderate age group with baseline diabetes risk")
+
+        # Check for diabetes diagnosis codes
+        if inputs['diag_1'] == '250' or inputs['diag_2'] == '250' or inputs['diag_3'] == '250':
+            factors.append("**Diabetes diagnosis** - Primary condition requires ongoing management")
+
+        # Check if on diabetes medication
+        if inputs['diabetesMed'] == 'Yes':
+            factors.append("**Active diabetes treatment** - Patient requires medication management")
 
     return factors
 
@@ -465,6 +469,17 @@ if page == "Score a Patient":
                 st.error(f"⚠️ **Prediction failed**: {str(e)}")
                 st.info("This may be due to feature mismatch. Check that input features match training data.")
 
+        # Educational Disclaimer at bottom of Score a Patient page
+        st.markdown("---")
+        st.warning("""
+            **⚠️ EDUCATIONAL PROJECT DISCLAIMER**
+
+            This application is a school assignment created for educational purposes only.
+            The predictions and recommendations provided by this tool should **NOT** be used for actual medical decision-making
+            or patient care. This is not a substitute for professional medical advice, diagnosis, or treatment.
+            Always consult qualified healthcare professionals for medical decisions.
+        """)
+
 elif page == "About the Model":
     st.markdown("<h2>About the Model</h2>", unsafe_allow_html=True)
     
@@ -597,3 +612,13 @@ elif page == "About the Model":
         <p style='font-size: 0.9rem;'>Deployed via Streamlit Cloud | Tracked in Databricks MLflow | Code on GitHub</p>
     </div>
     """, unsafe_allow_html=True)
+
+    # Educational Disclaimer at bottom of About the Model page
+    st.warning("""
+        **⚠️ EDUCATIONAL PROJECT DISCLAIMER**
+
+        This application is a school assignment created for educational purposes only.
+        The predictions and recommendations provided by this tool should **NOT** be used for actual medical decision-making
+        or patient care. This is not a substitute for professional medical advice, diagnosis, or treatment.
+        Always consult qualified healthcare professionals for medical decisions.
+    """)
