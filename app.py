@@ -63,6 +63,16 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
+# Educational Disclaimer
+st.warning("""
+    **⚠️ EDUCATIONAL PROJECT DISCLAIMER**
+
+    This application is a school assignment created for educational purposes only.
+    The predictions and recommendations provided by this tool should **NOT** be used for actual medical decision-making
+    or patient care. This is not a substitute for professional medical advice, diagnosis, or treatment.
+    Always consult qualified healthcare professionals for medical decisions.
+""")
+
 # Load model from local file
 @st.cache_resource
 def load_model():
@@ -110,6 +120,54 @@ def get_interventions(risk_level):
             "🚨 Consider home health referral",
             "🚨 Confirm medication reconciliation and affordability"
         ]
+
+# Helper function to identify key contributing factors
+def get_key_factors(inputs, input_df):
+    """Identify key factors that likely influenced the prediction"""
+    factors = []
+
+    # Check for elderly status
+    if inputs['age'] in ['[70-80)', '[80-90)', '[90-100)']:
+        factors.append("**Advanced age** - Patients 70+ have increased readmission risk")
+
+    # Check for high prior utilization
+    total_visits = inputs['number_emergency'] + inputs['number_inpatient'] + inputs['number_outpatient']
+    if total_visits >= 2:
+        factors.append(f"**High prior utilization** - {total_visits} prior visits in past year indicates healthcare needs")
+
+    # Check for emergency history
+    if inputs['number_emergency'] > 0:
+        factors.append(f"**Emergency department history** - {inputs['number_emergency']} ED visit(s) in past year")
+
+    # Check for inpatient history
+    if inputs['number_inpatient'] > 0:
+        factors.append(f"**Previous hospitalizations** - {inputs['number_inpatient']} inpatient stay(s) in past year")
+
+    # Check for medication complexity
+    if inputs['num_medications'] > 15:
+        factors.append(f"**High medication burden** - {inputs['num_medications']} medications increases complexity")
+
+    # Check for medication changes
+    if inputs['change'] == 'Ch':
+        factors.append("**Recent medication changes** - Adjustments during hospitalization require monitoring")
+
+    # Check for insulin use
+    if inputs['insulin'] not in ['No', 'no']:
+        factors.append("**Insulin therapy** - Requires careful management and patient education")
+
+    # Check for long hospital stay
+    if inputs['time_in_hospital'] > 7:
+        factors.append(f"**Extended hospital stay** - {inputs['time_in_hospital']} days indicates complex medical needs")
+
+    # Check for multiple diagnoses
+    if inputs['number_diagnoses'] > 7:
+        factors.append(f"**Multiple diagnoses** - {inputs['number_diagnoses']} conditions increases care complexity")
+
+    # Check for high procedure count
+    if inputs['num_lab_procedures'] > 60:
+        factors.append(f"**Extensive testing** - {inputs['num_lab_procedures']} lab procedures suggests complex case")
+
+    return factors
 
 def prepare_input_data(inputs):
     """Prepare input data with EXACT 58 features the model expects"""
@@ -374,12 +432,23 @@ if page == "Score a Patient":
                     </div>
                 """, unsafe_allow_html=True)
                 
+                # Key factors influencing prediction
+                st.markdown("<h3>Key Factors Contributing to This Risk Assessment</h3>", unsafe_allow_html=True)
+                key_factors = get_key_factors(inputs, input_df)
+
+                if key_factors:
+                    st.info("The following patient characteristics likely influenced this risk prediction:")
+                    for factor in key_factors:
+                        st.markdown(f"• {factor}")
+                else:
+                    st.info("• Patient profile shows standard risk characteristics with no major red flags")
+
                 # Recommended interventions
                 st.markdown("<h3>Suggested Next Steps</h3>", unsafe_allow_html=True)
                 interventions = get_interventions(risk_level)
                 for intervention in interventions:
                     st.markdown(f"- {intervention}")
-                    
+
             except Exception as e:
                 st.error(f"⚠️ **Prediction failed**: {str(e)}")
                 st.info("This may be due to feature mismatch. Check that input features match training data.")
