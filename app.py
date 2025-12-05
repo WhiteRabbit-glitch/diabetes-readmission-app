@@ -93,9 +93,17 @@ page = st.sidebar.radio("Navigation", ["Score a Patient", "About the Model"])
 
 # Helper function to calculate risk category
 def get_risk_category(probability):
-    if probability < 0.15:
+    """
+    Categorize readmission risk based on model probability output.
+
+    Thresholds based on clinical utility and model performance:
+    - Low: < 40% (below typical readmission baseline)
+    - Medium: 40-50% (moderate risk, warrants attention)
+    - High: > 50% (more likely to be readmitted than not)
+    """
+    if probability < 0.40:
         return "Low", "#9AD66B", "low-risk"
-    elif probability < 0.30:
+    elif probability < 0.50:
         return "Medium", "#FFB84D", "medium-risk"
     else:
         return "High", "#FF6B5A", "high-risk"
@@ -379,10 +387,14 @@ if page == "Score a Patient":
                 
                 # Get prediction probability
                 prediction_proba = model.predict_proba(input_array)
-                
+
                 # Get probability of positive class (readmission = 1)
                 probability = float(prediction_proba[0][1])
-                
+
+                # DEBUG: Show raw model output
+                st.info(f"🔍 **Debug Info**: Model raw probability = {probability:.4f} ({probability*100:.2f}%)")
+                st.info(f"📊 **Probability breakdown**: No readmission = {prediction_proba[0][0]:.4f}, Readmission = {prediction_proba[0][1]:.4f}")
+
                 risk_level, risk_color, risk_class = get_risk_category(probability)
                 
                 # Display results
@@ -403,9 +415,9 @@ if page == "Score a Patient":
                         'borderwidth': 2,
                         'bordercolor': "#4A4F5C",
                         'steps': [
-                            {'range': [0, 15], 'color': '#E8F5E9'},
-                            {'range': [15, 30], 'color': '#FFF3E0'},
-                            {'range': [30, 100], 'color': '#FFEBEE'}
+                            {'range': [0, 40], 'color': '#E8F5E9'},
+                            {'range': [40, 50], 'color': '#FFF3E0'},
+                            {'range': [50, 100], 'color': '#FFEBEE'}
                         ],
                         'threshold': {
                             'line': {'color': "#0B1F33", 'width': 4},
