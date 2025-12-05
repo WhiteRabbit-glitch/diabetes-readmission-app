@@ -61,15 +61,26 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Logo and header
-col_logo1, col_logo2, col_logo3 = st.columns([1, 2, 1])
-with col_logo2:
-    st.image("GlucoBridge.png", use_container_width=True)
-
-st.markdown("""
-    <div style='text-align: center; padding: 1rem 0;'>
-        <p style='color: #4A4F5C; font-size: 1.2rem;'>Bridging diabetes care from hospital to home</p>
-    </div>
-""", unsafe_allow_html=True)
+# Try to load custom logo, fall back to text if not found
+try:
+    col_logo1, col_logo2, col_logo3 = st.columns([1, 2, 1])
+    with col_logo2:
+        st.image("GlucoBridge.png", use_container_width=True)
+    st.markdown("""
+        <div style='text-align: center; padding: 1rem 0;'>
+            <p style='color: #4A4F5C; font-size: 1.2rem;'>Bridging diabetes care from hospital to home</p>
+        </div>
+    """, unsafe_allow_html=True)
+except:
+    # Fallback to text logo if image not found
+    st.markdown("""
+        <div style='text-align: center; padding: 2rem 0;'>
+            <h1 style='color: #0B1F33; font-size: 2.5rem; margin-bottom: 0.5rem;'>
+                🌉 <span style='color: #1B9AAA;'>GlucoBridge</span> Health
+            </h1>
+            <p style='color: #4A4F5C; font-size: 1.2rem;'>Bridging diabetes care from hospital to home</p>
+        </div>
+    """, unsafe_allow_html=True)
 
 # Load model from local file
 @st.cache_resource
