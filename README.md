@@ -654,7 +654,7 @@ Arizona State University
 - 💼 LinkedIn: [chandragcarr](https://www.linkedin.com/in/chandragcarr/)
 
 **Course:** CIS 508 - Machine Learning in Business
-**Semester:** Fall 2024
+**Semester:** Fall 2025
 
 ---
 
@@ -680,9 +680,9 @@ Arizona State University
 | Deployment | Week 5 | Streamlit app, GitHub repository |
 | Documentation | Week 6 | README, presentation, final report |
 
-**Total Project Duration:** 6 weeks  
-**Total MLflow Runs:** 490+  
-**Final Deployment Date:** December 2024
+**Total Project Duration:** 6 weeks
+**Total MLflow Runs:** 490+
+**Final Deployment Date:** December 2025
 
 ---
 

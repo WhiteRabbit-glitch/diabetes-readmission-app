@@ -8,7 +8,7 @@ import os
 # Page config
 st.set_page_config(
     page_title="GlucoBridge Readmission Risk Viewer",
-    page_icon="🌉",
+    page_icon="GlucoBridge.png",
     layout="wide"
 )
 
@@ -50,15 +50,23 @@ st.markdown("""
     .low-risk {
         border-left: 5px solid #9AD66B;
     }
+    /* Make expander arrows always visible */
+    .streamlit-expanderHeader svg {
+        opacity: 1 !important;
+    }
+    details summary svg {
+        opacity: 1 !important;
+    }
     </style>
 """, unsafe_allow_html=True)
 
 # Logo and header
+col_logo1, col_logo2, col_logo3 = st.columns([1, 2, 1])
+with col_logo2:
+    st.image("GlucoBridge.png", use_container_width=True)
+
 st.markdown("""
-    <div style='text-align: center; padding: 2rem 0;'>
-        <h1 style='color: #0B1F33; font-size: 2.5rem; margin-bottom: 0.5rem;'>
-            🌉 <span style='color: #1B9AAA;'>GlucoBridge</span> Health
-        </h1>
+    <div style='text-align: center; padding: 1rem 0;'>
         <p style='color: #4A4F5C; font-size: 1.2rem;'>Bridging diabetes care from hospital to home</p>
     </div>
 """, unsafe_allow_html=True)
@@ -547,7 +555,7 @@ if page == "Score a Patient":
 
         # Model info and disclaimer at bottom of Score a Patient page
         st.markdown("---")
-        st.success("✅ Model loaded successfully - XGBoost trained on 100,000+ patient records")
+        st.success("✅ Model loaded successfully - XGBoost Classifier")
         st.markdown("---")
         st.warning("""
             **⚠️ EDUCATIONAL PROJECT DISCLAIMER**
@@ -583,7 +591,7 @@ elif page == "About the Model":
     - **Training Time Issues**: Neural Network and SVM models took 2+ hours per run, making iteration 
       impractical under project deadlines  
     - **SMOTE Problem**: Created synthetic training data that caused the model to predict >95% risk 
-      for nearly all patients—clinically useless and would overwhelm care teams with false alarms
+      for nearly all patients - clinically useless and would overwhelm care teams with false alarms
     - **Model Registration Failures**: Initial MLflow logging didn't include proper signatures, 
       preventing model registration in Databricks Unity Catalog
     - **Feature Mismatch in Deployment**: Trained model expected 58 specific features in exact order; 
@@ -677,7 +685,7 @@ elif page == "About the Model":
        unrealistic predictions; use proper weighting instead
     2. **Feature engineering matters**: Domain-specific features (medication patterns, utilization) 
        outperformed raw clinical codes
-    3. **Model interpretability vs. performance**: XGBoost provided the best tradeoff—better than 
+    3. **Model interpretability vs. performance**: XGBoost provided the best tradeoff - better than 
        simple models, more interpretable than deep learning
     4. **Deployment requires the full pipeline**: Model alone isn't enough; need proper preprocessing, 
        feature calculation, and error handling in production
@@ -706,7 +714,7 @@ elif page == "About the Model":
         </p>
         <p style='font-size: 0.9rem; margin-top: 1rem; color: #4A4F5C;'>
             CIS 508 - Machine Learning in Business<br>
-            December 2024
+            December 2025
         </p>
     </div>
     """, unsafe_allow_html=True)
