@@ -146,7 +146,7 @@ def get_key_factors(inputs, input_df):
         factors.append(f"**High medication burden** - {inputs['num_medications']} medications increases complexity")
 
     # Check for medication changes
-    if inputs['change'] == 'Ch':
+    if inputs['change'] == 'Yes':
         factors.append("**Recent medication changes** - Adjustments during hospitalization require monitoring")
 
     # Check for insulin use
@@ -183,7 +183,10 @@ def get_key_factors(inputs, input_df):
 
 def prepare_input_data(inputs):
     """Prepare input data with EXACT 58 features the model expects"""
-    
+
+    # Convert Yes/No to Ch/No for medication changes (model expects 'Ch')
+    change_value = 'Ch' if inputs.get('change', 'No') == 'Yes' else 'No'
+
     # Create dataframe with all 58 columns in exact order from training
     data = {
         'race': inputs.get('race', 'Caucasian'),
@@ -226,7 +229,7 @@ def prepare_input_data(inputs):
         'glimepiride-pioglitazone': 'No',
         'metformin-rosiglitazone': 'No',
         'metformin-pioglitazone': 'No',
-        'change': inputs.get('change', 'No'),
+        'change': change_value,
         'diabetesMed': inputs.get('diabetesMed', 'Yes'),
     }
     
@@ -305,7 +308,6 @@ if page == "Score a Patient":
     elif model is None:
         st.warning("⚠️ **Model not loaded**. Check your Databricks connection.")
     else:
-        st.success("✅ Model loaded successfully from Databricks")
         st.info("📋 Enter patient information to calculate 30-day readmission risk")
         
         # Create form in columns
@@ -322,9 +324,86 @@ if page == "Score a Patient":
             time_in_hospital = st.number_input("Time in Hospital (days)", min_value=1, max_value=14, value=3)
             
             st.markdown("### Admission Details")
-            admission_type_id = st.selectbox("Admission Type", list(range(1, 9)), index=0)
-            discharge_disposition_id = st.selectbox("Discharge Disposition", list(range(1, 30)), index=0)
-            admission_source_id = st.selectbox("Admission Source", list(range(1, 26)), index=0)
+            # Admission Type mapping
+            admission_types = {
+                "Emergency": 1,
+                "Urgent": 2,
+                "Elective": 3,
+                "Newborn": 4,
+                "Not Available": 5,
+                "NULL": 6,
+                "Trauma Center": 7,
+                "Not Mapped": 8
+            }
+            admission_type = st.selectbox("Admission Type", list(admission_types.keys()), index=0)
+            admission_type_id = admission_types[admission_type]
+
+            # Discharge Disposition mapping
+            discharge_dispositions = {
+                "Discharged to home": 1,
+                "Discharged/transferred to another short term hospital": 2,
+                "Discharged/transferred to SNF (skilled nursing facility)": 3,
+                "Discharged/transferred to ICF (intermediate care facility)": 4,
+                "Discharged/transferred to another type of inpatient care": 5,
+                "Discharged/transferred to home with home health service": 6,
+                "Left AMA (against medical advice)": 7,
+                "Discharged/transferred to home under care of Home IV provider": 8,
+                "Admitted as an inpatient to this hospital": 9,
+                "Neonate discharged to another hospital for neonatal aftercare": 10,
+                "Expired": 11,
+                "Still patient or expected to return for outpatient services": 12,
+                "Hospice / home": 13,
+                "Hospice / medical facility": 14,
+                "Discharged/transferred within this institution to Medicare approved swing bed": 15,
+                "Discharged/transferred/referred another institution for outpatient services": 16,
+                "Discharged/transferred/referred to this institution for outpatient services": 17,
+                "NULL": 18,
+                "Expired at home. Medicaid only, hospice.": 19,
+                "Expired in a medical facility. Medicaid only, hospice.": 20,
+                "Expired, place unknown. Medicaid only, hospice.": 21,
+                "Discharged/transferred to another rehab fac": 22,
+                "Discharged/transferred to a long term care hospital": 23,
+                "Discharged/transferred to a nursing facility certified under Medicaid": 24,
+                "Not Mapped": 25,
+                "Unknown/Invalid": 26,
+                "Discharged/transferred to a federal health care facility": 27,
+                "Discharged/transferred/referred to a psychiatric hospital": 28,
+                "Discharged/transferred to a Critical Access Hospital (CAH)": 29
+            }
+            discharge_disposition = st.selectbox("Discharge Disposition",
+                                                list(discharge_dispositions.keys()), index=0)
+            discharge_disposition_id = discharge_dispositions[discharge_disposition]
+
+            # Admission Source mapping
+            admission_sources = {
+                "Physician Referral": 1,
+                "Clinic Referral": 2,
+                "HMO Referral": 3,
+                "Transfer from a hospital": 4,
+                "Transfer from a Skilled Nursing Facility (SNF)": 5,
+                "Transfer from another health care facility": 6,
+                "Emergency Room": 7,
+                "Court/Law Enforcement": 8,
+                "Not Available": 9,
+                "Transfer from critical access hospital": 10,
+                "Normal Delivery": 11,
+                "Premature Delivery": 12,
+                "Sick Baby": 13,
+                "Extramural Birth": 14,
+                "Not Available": 15,
+                "NULL": 17,
+                "Transfer From Another Home Health Agency": 18,
+                "Readmission to Same Home Health Agency": 19,
+                "Not Mapped": 20,
+                "Unknown/Invalid": 21,
+                "Transfer from hospital inpatient in the same facility": 22,
+                "Born inside this hospital": 23,
+                "Born outside this hospital": 24,
+                "Transfer from Ambulatory Surgery Center": 25
+            }
+            admission_source = st.selectbox("Admission Source",
+                                           list(admission_sources.keys()), index=6)  # Default to Emergency Room
+            admission_source_id = admission_sources[admission_source]
         
         with col2:
             st.markdown("### Clinical Information")
@@ -342,7 +421,7 @@ if page == "Score a Patient":
         with st.expander("Medications", expanded=False):
             col3, col4 = st.columns(2)
             with col3:
-                change = st.selectbox("Medication Change", ['No', 'Ch'])
+                change = st.selectbox("Medication Changed During Stay", ['No', 'Yes'])
                 diabetesMed = st.selectbox("Diabetes Med Prescribed", ['Yes', 'No'])
             
             with col4:
@@ -350,11 +429,12 @@ if page == "Score a Patient":
                 metformin = st.selectbox("Metformin", ['No', 'Steady', 'Up', 'Down'])
                 insulin = st.selectbox("Insulin", ['No', 'Steady', 'Up', 'Down'])
         
-        # Diagnosis codes
-        with st.expander("Diagnosis Codes (ICD-9)", expanded=False):
-            diag_1 = st.text_input("Primary Diagnosis", value="250")
-            diag_2 = st.text_input("Secondary Diagnosis", value="250")
-            diag_3 = st.text_input("Tertiary Diagnosis", value="250")
+        # Diagnosis codes (optional - defaults to diabetes)
+        with st.expander("Diagnosis Codes (Optional - ICD-9)", expanded=False):
+            st.info("💡 Diagnosis codes are optional. Default is 250 (Diabetes). Common codes: 250 (Diabetes), 401 (Hypertension), 428 (Heart Failure), 427 (Cardiac Arrhythmia)")
+            diag_1 = st.text_input("Primary Diagnosis Code", value="250")
+            diag_2 = st.text_input("Secondary Diagnosis Code", value="250")
+            diag_3 = st.text_input("Tertiary Diagnosis Code", value="250")
         
         if st.button("🎯 Calculate Risk Score", use_container_width=True):
             # Prepare inputs
@@ -394,10 +474,6 @@ if page == "Score a Patient":
 
                 # Get probability of positive class (readmission = 1)
                 probability = float(prediction_proba[0][1])
-
-                # DEBUG: Show raw model output
-                st.info(f"🔍 **Debug Info**: Model raw probability = {probability:.4f} ({probability*100:.2f}%)")
-                st.info(f"📊 **Probability breakdown**: No readmission = {prediction_proba[0][0]:.4f}, Readmission = {prediction_proba[0][1]:.4f}")
 
                 risk_level, risk_color, risk_class = get_risk_category(probability)
                 
@@ -469,7 +545,9 @@ if page == "Score a Patient":
                 st.error(f"⚠️ **Prediction failed**: {str(e)}")
                 st.info("This may be due to feature mismatch. Check that input features match training data.")
 
-        # Educational Disclaimer at bottom of Score a Patient page
+        # Model info and disclaimer at bottom of Score a Patient page
+        st.markdown("---")
+        st.success("✅ Model loaded successfully - XGBoost trained on 100,000+ patient records")
         st.markdown("---")
         st.warning("""
             **⚠️ EDUCATIONAL PROJECT DISCLAIMER**
@@ -613,7 +691,28 @@ elif page == "About the Model":
     </div>
     """, unsafe_allow_html=True)
 
+    # Author Information
+    st.markdown("---")
+    st.markdown("""
+    <div style='text-align: center; padding: 1.5rem;'>
+        <h3 style='color: #0B1F33; margin-bottom: 1rem;'>About the Author</h3>
+        <p><strong>Chandra Carr</strong></p>
+        <p>Graduate Student, W.P. Carey School of Business</p>
+        <p>Arizona State University</p>
+        <p style='margin-top: 1rem;'>
+            📧 <a href='mailto:cgcarr@asu.edu'>cgcarr@asu.edu</a><br>
+            💼 <a href='https://www.linkedin.com/in/chandragcarr/' target='_blank'>LinkedIn Profile</a><br>
+            💻 <a href='https://github.com/WhiteRabbit-glitch' target='_blank'>GitHub</a>
+        </p>
+        <p style='font-size: 0.9rem; margin-top: 1rem; color: #4A4F5C;'>
+            CIS 508 - Machine Learning in Business<br>
+            December 2024
+        </p>
+    </div>
+    """, unsafe_allow_html=True)
+
     # Educational Disclaimer at bottom of About the Model page
+    st.markdown("---")
     st.warning("""
         **⚠️ EDUCATIONAL PROJECT DISCLAIMER**
 

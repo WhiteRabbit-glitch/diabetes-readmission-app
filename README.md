@@ -23,9 +23,38 @@ End-to-end machine learning project predicting hospital readmission risk for dia
 ### The Solution
 ML-powered risk stratification at discharge to:
 - **Predict readmission risk** with 70% AUC
-- **Stratify patients** into Low/Medium/High risk tiers
+- **Stratify patients** into Low/Medium/High risk tiers (Low: <40%, Medium: 40-50%, High: >50%)
 - **Recommend interventions** based on risk level
+- **Explain predictions** with key contributing factors
 - **Enable resource allocation** to highest-need patients
+
+---
+
+## 🖥️ Web Application Features
+
+The deployed Streamlit application provides:
+
+### Patient Risk Scoring
+- **User-friendly input forms** with meaningful labels for all clinical fields
+- **Admission details** with readable descriptions (Emergency, Urgent, Elective, etc.)
+- **Discharge dispositions** clearly labeled (Home, SNF, Home Health, etc.)
+- **Medication tracking** with Yes/No toggles for changes during stay
+- **Optional diagnosis codes** with common ICD-9 examples provided
+
+### Risk Assessment Results
+- **Visual risk gauge** showing probability percentage with color-coded zones
+- **Risk categorization**: Low (green), Medium (yellow), High (red)
+- **Key contributing factors** explaining why the prediction was made:
+  - Advanced age (70+)
+  - Prior healthcare utilization (ED visits, hospitalizations)
+  - Medication complexity and changes
+  - Hospital stay duration and procedure count
+- **Tailored interventions** specific to each risk level
+
+### Educational Safeguards
+- **Prominent disclaimer** on every page stating this is a school project
+- **Model information** showing training dataset size and algorithm
+- **About the Model** page with full technical details and lessons learned
 
 ---
 
@@ -615,14 +644,17 @@ For full terms, see: https://www.gnu.org/licenses/gpl-3.0.en.html
 
 ## 👤 Author
 
-**Chandra Carr**  
-Graduate Student, W.P. Carey School of Business  
+**Chandra Carr**
+Graduate Student, W.P. Carey School of Business
 Arizona State University
 
 **Contact:**
-- Email: cgcarr@asu.edu
-- GitHub: [@yourusername](https://github.com/WhiteRabbit-glitch)
-- LinkedIn: [Your LinkedIn](https://www.linkedin.com/in/chandragcarr/)
+- 📧 Email: cgcarr@asu.edu
+- 💻 GitHub: [@WhiteRabbit-glitch](https://github.com/WhiteRabbit-glitch)
+- 💼 LinkedIn: [chandragcarr](https://www.linkedin.com/in/chandragcarr/)
+
+**Course:** CIS 508 - Machine Learning in Business
+**Semester:** Fall 2024
 
 ---
 
