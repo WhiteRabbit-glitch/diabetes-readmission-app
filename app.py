@@ -106,11 +106,11 @@ def get_risk_category(probability):
     Categorize readmission risk based on model probability output.
 
     Thresholds based on clinical utility and model performance:
-    - Low: < 40% (below typical readmission baseline)
-    - Medium: 40-50% (moderate risk, warrants attention)
+    - Low: < 30% (below typical readmission baseline)
+    - Medium: 30-50% (moderate risk, warrants attention)
     - High: > 50% (more likely to be readmitted than not)
     """
-    if probability < 0.40:
+    if probability < 0.30:
         return "Low", "#9AD66B", "low-risk"
     elif probability < 0.50:
         return "Medium", "#FFB84D", "medium-risk"
@@ -514,8 +514,8 @@ if page == "Score a Patient":
                         'borderwidth': 2,
                         'bordercolor': "#4A4F5C",
                         'steps': [
-                            {'range': [0, 40], 'color': '#E8F5E9'},
-                            {'range': [40, 50], 'color': '#FFF3E0'},
+                            {'range': [0, 30], 'color': '#E8F5E9'},
+                            {'range': [30, 50], 'color': '#FFF3E0'},
                             {'range': [50, 100], 'color': '#FFEBEE'}
                         ],
                         'threshold': {
@@ -620,9 +620,26 @@ elif page == "About the Model":
     - **Production-Ready Deployment**: Proper MLflow signatures enable seamless model registry 
       and web application integration
     
+    ### How We Convert Binary Predictions to Risk Percentages
+
+    The XGBoost model was trained to predict **Yes/No readmission** (binary classification), but outputs
+    **probability percentages** (0-100%) representing confidence in that prediction.
+
+    **Simple Explanation:**
+    - The model learns patterns from thousands of past patients (readmitted vs not readmitted)
+    - For each new patient, it calculates: "How similar is this patient to those who were readmitted?"
+    - This similarity becomes a **probability score** (e.g., 35% means 35% confidence of readmission)
+    - We then categorize these probabilities into **Low/Medium/High risk tiers**:
+      - **Low Risk**: < 30% probability
+      - **Medium Risk**: 30-50% probability
+      - **High Risk**: > 50% probability (more likely to be readmitted than not)
+
+    This approach allows for **nuanced risk stratification** rather than just "yes/no" predictions,
+    enabling care teams to prioritize resources appropriately.
+
     ### Final Model Performance
     """)
-    
+
     # Model comparison table with actual metrics - BEST MODEL FIRST
     comparison_data = {
         'Model': ['XGBoost (Final)', 'Random Forest', 'Logistic Regression'],

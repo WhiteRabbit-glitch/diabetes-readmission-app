@@ -23,7 +23,7 @@ End-to-end machine learning project predicting hospital readmission risk for dia
 ### The Solution
 ML-powered risk stratification at discharge to:
 - **Predict readmission risk** with 70% AUC
-- **Stratify patients** into Low/Medium/High risk tiers (Low: <40%, Medium: 40-50%, High: >50%)
+- **Stratify patients** into Low/Medium/High risk tiers (Low: <30%, Medium: 30-50%, High: >50%)
 - **Recommend interventions** based on risk level
 - **Explain predictions** with key contributing factors
 - **Enable resource allocation** to highest-need patients
