@@ -640,17 +640,33 @@ elif page == "About the Model":
     ### Final Model Performance
     """)
 
-    # Model comparison table with actual metrics - BEST MODEL FIRST
+    # Model comparison table with actual metrics - All 9 models ranked by F1 Score
     comparison_data = {
-        'Model': ['XGBoost (Final)', 'Random Forest', 'Logistic Regression'],
-        'F1 Score': [0.63, 0.60, 0.58],
-        'Accuracy': [0.65, 0.64, 0.62],
-        'Recall': [0.64, 0.57, 0.55],
-        'ROC AUC': [0.70, 0.71, 0.68],
+        'Model': [
+            'XGBoost (Final)',
+            'Gradient Boosting',
+            'Random Forest',
+            'Decision Tree',
+            'Logistic Regression',
+            'SVM',
+            'k-NN',
+            'Neural Network',
+            'Naive Bayes'
+        ],
+        'F1 Score': [0.6273, 0.5960, 0.5909, 0.6053, 0.5990, 0.5829, 0.5650, 0.6057, 0.3543],
+        'Accuracy': [0.6488, 0.6459, 0.6396, 0.6175, 0.6192, 0.6076, 0.5727, 0.6261, 0.5909],
+        'Recall': [0.6413, 0.5629, 0.5647, 0.6345, 0.5990, 0.6700, 0.5383, 0.6057, 0.6502],
+        'ROC AUC': [0.7041, 0.7039, 0.6940, 0.6635, 0.6587, 0.6459, 0.6016, 0.6725, 0.6307],
         'Notes': [
-            '✓ Best balance - optimized for recall',
-            'Better performance, less interpretable',
-            'Simple baseline, interpretable'
+            '✓ Selected - Best F1, balanced metrics',
+            'Strong performance, slower training',
+            'Good balance, ensemble method',
+            'Fast, interpretable, higher recall',
+            'Simple baseline, interpretable',
+            'Highest recall, computationally expensive',
+            'Simple, distance-based',
+            'Complex, long training time',
+            'Poor performance on this dataset'
         ]
     }
     
